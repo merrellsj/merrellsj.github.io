@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holter Monitor Symptom Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rose: #F5586B;
+    --rose-light: #FF8C9B;
+    --rose-dark: #C93E50;
+    --bg-dark: #0A0E17;
+    --bg-card: #111827;
+    --bg-card-hover: #1A2332;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --accent-green: #34D399;
+    --accent-blue: #60A5FA;
+    --accent-purple: #A78BFA;
+    --border: rgba(245,88,107,0.12);
+    --glow: rgba(245,88,107,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* --- NOISE OVERLAY --- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* --- NAV --- */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(20px);
+    background: rgba(10,14,23,0.8);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.5px;
+    color: var(--rose);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--rose);
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--rose);
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .nav-links { display: flex; gap: 2rem; align-items: center; }
+
+  .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--rose-light); }
+
+  /* --- HERO --- */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8rem 2rem 6rem;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--rose);
+    background: rgba(245,88,107,0.08);
+    border: 1px solid rgba(245,88,107,0.2);
+    padding: 0.4rem 1.2rem;
+    border-radius: 100px;
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.8s ease-out;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.6rem, 7vw, 5rem);
+    font-weight: 900;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.8s ease-out 0.1s both;
+  }
+
+  .hero h1 .highlight {
+    background: linear-gradient(135deg, var(--rose-light), var(--rose), var(--rose-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    max-width: 560px;
+    font-weight: 300;
+    margin-bottom: 3rem;
+    animation: fadeUp 0.8s ease-out 0.2s both;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: linear-gradient(135deg, var(--rose), var(--rose-dark));
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 1rem 2.2rem;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 30px rgba(245,88,107,0.3);
+    animation: fadeUp 0.8s ease-out 0.3s both;
+  }
+
+  .hero-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(245,88,107,0.45);
+  }
+
+  .hero-cta.disabled {
+    background: var(--bg-card);
+    color: var(--text-muted);
+    box-shadow: none;
+    border: 1px solid var(--border);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* --- FEATURES --- */
+  .features {
+    padding: 6rem 2rem 8rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--rose);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 4rem;
+    max-width: 640px;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.2rem;
+    transition: transform 0.4s, border-color 0.4s, background 0.4s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--rose), transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(245,88,107,0.25);
+    background: var(--bg-card-hover);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .feature-icon.rose { background: rgba(245,88,107,0.1); }
+  .feature-icon.green { background: rgba(52,211,153,0.1); }
+  .feature-icon.blue { background: rgba(96,165,250,0.1); }
+  .feature-icon.purple { background: rgba(167,139,250,0.1); }
+
+  .feature-card h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  .feature-card p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 300;
+    line-height: 1.65;
+  }
+
+  /* --- SYMPTOMS BAR --- */
+  .symptoms-section {
+    padding: 4rem 2rem;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(245,88,107,0.02), transparent);
+  }
+
+  .symptoms-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .symptoms-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .symptom-chip {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 0.45rem 1rem;
+    border-radius: 100px;
+    transition: border-color 0.3s, color 0.3s;
+  }
+
+  .symptom-chip:hover {
+    border-color: var(--rose);
+    color: var(--rose-light);
+  }
+
+  /* --- CTA BANNER --- */
+  .cta-banner {
+    padding: 8rem 2rem;
+    text-align: center;
+  }
+
+  .cta-banner h2 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+  }
+
+  .cta-banner p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-weight: 300;
+    margin-bottom: 2.5rem;
+  }
+
+  /* --- DISCLAIMER --- */
+  .disclaimer {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+    text-align: center;
+  }
+
+  .disclaimer p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  /* --- PRIVACY POLICY --- */
+  .privacy {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 6rem 2rem 8rem;
+  }
+
+  .privacy-header {
+    margin-bottom: 3.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .privacy-header h2 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  .privacy-header .updated {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .privacy-intro {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 3rem;
+    line-height: 1.8;
+  }
+
+  .policy-section {
+    margin-bottom: 2.8rem;
+  }
+
+  .policy-section h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .policy-section h3 .num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--rose);
+    background: rgba(245,88,107,0.08);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .policy-section p, .policy-section li {
+    color: var(--text-secondary);
+    font-size: 0.93rem;
+    line-height: 1.8;
+    font-weight: 300;
+  }
+
+  .policy-section ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.8rem;
+  }
+
+  .policy-section li {
+    padding: 0.3rem 0 0.3rem 1.4rem;
+    position: relative;
+  }
+
+  .policy-section li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.85rem;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--rose);
+    opacity: 0.5;
+  }
+
+  .policy-section a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(96,165,250,0.3);
+    transition: border-color 0.3s;
+  }
+
+  .policy-section a:hover {
+    border-color: var(--accent-blue);
+  }
+
+  .policy-section .highlight-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-top: 0.8rem;
+  }
+
+  .contact-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--rose-light);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    background: rgba(245,88,107,0.06);
+    border: 1px solid rgba(245,88,107,0.15);
+    border-radius: 10px;
+    transition: border-color 0.3s, background 0.3s;
+    margin-top: 0.5rem;
+  }
+
+  .contact-email:hover {
+    border-color: var(--rose);
+    background: rgba(245,88,107,0.1);
+  }
+
+  .privacy-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* --- FOOTER --- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  footer a:hover { color: var(--rose-light); }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 640px) {
+    nav { padding: 1rem 1.25rem; }
+    .nav-links { gap: 1.2rem; }
+    .nav-links a { font-size: 0.78rem; }
+    .hero { padding: 7rem 1.5rem 4rem; }
+    .features { padding: 4rem 1.5rem 5rem; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .privacy { padding: 4rem 1.5rem 5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo"><span class="logo-dot"></span> HOLTER LOG</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#privacy">Privacy</a>
+    <a href="index.html">All Apps</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Ambulatory Heart Monitor Companion</div>
+  <h1>What you felt.<br><span class="highlight">Right when it happened.</span></h1>
+  <p class="hero-sub">Holter Monitor Symptom Log timestamps every symptom while you wear your Holter or other ambulatory heart monitor, so your cardiologist can match what you felt against the recording — down to the minute.</p>
+  <span class="hero-cta disabled">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Coming Soon to the App Store
+  </span>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-label">Why Holter Log</div>
+  <h2 class="section-title">Built for one job: an accurate log your cardiologist can trust.</h2>
+  <div class="feature-grid">
+
+    <div class="feature-card">
+      <div class="feature-icon rose">🎙️</div>
+      <h3>Log It Hands-Free</h3>
+      <p>Say “Hey Siri, log palpitations in Heart Log” — even from the lock screen. Siri also answers to “Symptom Log” and “Holter Log,” or a custom phrase you set up yourself via Shortcuts or the Action button.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon blue">⏱️</div>
+      <h3>Timestamped to the Minute</h3>
+      <p>Every entry records exactly when a symptom happened, with the option to adjust the time if you logged it a moment late. That precision is what lets your doctor line your symptoms up against the monitor's data.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon purple">📋</div>
+      <h3>Organized by Session</h3>
+      <p>Start a new monitoring session each time you put the monitor on, and review past sessions any time. Nothing gets mixed together between wears.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon green">🖨️</div>
+      <h3>Print-Ready for Your Doctor</h3>
+      <p>Generate a clean, printable log of your session in one tap — ready to hand in with the monitor at your follow-up appointment.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon rose">☁️</div>
+      <h3>Private iCloud Sync</h3>
+      <p>Your log syncs across your devices through your own private iCloud account. It's never sent to the developer or any third party, and the app keeps working offline if iCloud isn't reachable.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon blue">↩️</div>
+      <h3>Edit and Undo</h3>
+      <p>Tap any entry to correct it, and deletions come with a quick Undo — so a stray tap never costs you a symptom you need in the log.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- SYMPTOMS -->
+<section class="symptoms-section">
+  <div class="symptoms-label">Symptoms You Can Log</div>
+  <div class="symptoms-list">
+    <span class="symptom-chip">Palpitations</span>
+    <span class="symptom-chip">Dizziness / Lightheadedness</span>
+    <span class="symptom-chip">Fainted</span>
+    <span class="symptom-chip">Chest Discomfort / Pain</span>
+    <span class="symptom-chip">Shortness of Breath</span>
+    <span class="symptom-chip">Exercise-Related</span>
+    <span class="symptom-chip">Other</span>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-banner">
+  <h2>Coming soon.</h2>
+  <p>Holter Monitor Symptom Log is in final development and headed to the App Store soon.</p>
+  <span class="hero-cta disabled">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Coming Soon
+  </span>
+</section>
+
+<div class="disclaimer">
+  <p>Holter Monitor Symptom Log is a personal record-keeping tool and is not a substitute for professional medical advice, diagnosis, or treatment. It does not connect to or read data from any monitoring device. Always follow your physician's instructions while wearing a Holter or other ambulatory monitor.</p>
+</div>
+
+<!-- PRIVACY POLICY -->
+<section class="privacy" id="privacy">
+  <div class="privacy-header">
+    <h2>Privacy Policy</h2>
+    <span class="updated">Last updated: July 18, 2026</span>
+  </div>
+
+  <p class="privacy-intro">This Privacy Policy describes how Holter Monitor Symptom Log ("we," "us," or "our") handles information when you use our mobile application ("the App"). We are committed to being transparent about our practices, especially given the sensitive, health-related nature of the data you log.</p>
+
+  <div class="policy-section">
+    <h3><span class="num">01</span> Information We Collect</h3>
+    <p>Holter Monitor Symptom Log does not require you to create an account or provide any personal details to use the App. The App does not collect or transmit any information to the developer.</p>
+    <div class="highlight-box">
+      <p>The data you enter — symptom type, timestamp, session, and any notes you add — is stored locally on your device and, if you're signed in to iCloud, synced to <strong>your own private iCloud database</strong>. This data is never sent to us or to any third party.</p>
+    </div>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">02</span> Third-Party Services</h3>
+    <p>Holter Monitor Symptom Log uses Apple's iCloud (CloudKit) solely to sync your log privately between your own devices. We do not use advertising networks, analytics SDKs, or any other third-party service, and no data leaves Apple's ecosystem under your own account.</p>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">03</span> Siri & Shortcuts</h3>
+    <p>When you log a symptom by voice using Siri or a Shortcut, that request is processed by Apple's Siri and Shortcuts frameworks on your device (or Apple's servers, per Apple's own Siri privacy practices) to create the entry in the App. We do not receive a copy of your voice recordings.</p>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">04</span> Data We Do Not Collect</h3>
+    <p>We want to be explicit. Holter Monitor Symptom Log does not collect:</p>
+    <ul>
+      <li>Your name, email address, or any contact information</li>
+      <li>Location data</li>
+      <li>Any data read from a Holter monitor or other medical device</li>
+      <li>Usage analytics or advertising identifiers</li>
+      <li>Camera or microphone recordings</li>
+      <li>Contacts or calendars</li>
+    </ul>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">05</span> Children's Privacy</h3>
+    <p>Holter Monitor Symptom Log is not directed at children and is not knowingly used to collect information from children under the age of 13.</p>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">06</span> Data Retention & Deletion</h3>
+    <p>Because your log lives in your own local storage and private iCloud database, you are always in control of it. Deleting an entry or session removes it permanently. Deleting the App removes all local data; you can also remove synced data from iCloud through your device's iCloud settings.</p>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">07</span> Security</h3>
+    <p>Your data is protected by Apple's standard on-device encryption and the security of your private iCloud account. We have no server of our own and no access to your data at any time.</p>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">08</span> Changes to This Privacy Policy</h3>
+    <p>We may update this Privacy Policy from time to time. Any changes will be reflected by updating the "Last updated" date at the top of this page. We encourage you to review this policy periodically.</p>
+  </div>
+
+  <div class="policy-section">
+    <h3><span class="num">09</span> Contact Us</h3>
+    <p>If you have any questions or concerns about this Privacy Policy, please contact us at:</p>
+    <a href="mailto:holtermonitorsymptomlog@icloud.com" class="contact-email">📧 holtermonitorsymptomlog@icloud.com</a>
+  </div>
+
+  <p class="privacy-footer">This privacy policy was written specifically for Holter Monitor Symptom Log and reflects the actual data practices of the application.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  &copy; 2026 Holter Monitor Symptom Log. All rights reserved. &middot; <a href="index.html">SJM Software</a>
+</footer>
+
+</body>
+</html>
